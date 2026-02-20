@@ -1,4 +1,5 @@
-local Utils = require("imports/shared/math/utils.lua")
+local Utils = require "imports/shared/math/utils.lua"
+local Validator = require "imports/shared/validate/init.lua"
 
 local prototype = {
     __index = math,
@@ -8,6 +9,12 @@ local prototype = {
 local xMath = setmetatable({}, prototype)
 
 function xMath.clamp(value, min, max)
+    Validator.arguments(true, {
+        { value, "number" },
+        { min, "number" },
+        { max, "number" },
+    })
+
     if min > max then 
         min, max = max, min
     end
@@ -16,16 +23,41 @@ function xMath.clamp(value, min, max)
 end
 
 function xMath.interpolate(start, finish, factor)
+    Validator.arguments(true, {
+        { start, { "number", "vector2", "vector3", "vector4" } },
+        { finish, { "number", "vector2", "vector3", "vector4" } },
+        { factor, "number" },
+    })
+
     local valueType = type(start)
+
+    if valueType ~= type(finish) then
+        error(("Expected start and finish to have the same type, got %s and %s"):format(valueType, type(finish)))
+    end
+
     return Utils.interpolateByType(start, finish, factor, valueType)
 end
 
 function xMath.headingBetween(origin, target)
+    Validator.arguments(true, {
+        { origin, { "table", "vector2", "vector3", "vector4" } },
+        { target, { "table", "vector2", "vector3", "vector4" } },
+        { origin and origin.x, "number" },
+        { origin and origin.y, "number" },
+        { target and target.x, "number" },
+        { target and target.y, "number" },
+    })
+
     local dx, dy = Utils.headingDelta(origin, target)
     return Utils.normalizeHeadingFromDelta(dx, dy)
 end
 
 function xMath.round(value, places) 
+    Validator.arguments(true, {
+        { value, "number" },
+        { places, { "number", "nil" } },
+    })
+
     if places then 
         local multiplier = 10 ^ places
         return math.floor(value * multiplier + 0.5) / multiplier
@@ -35,7 +67,18 @@ function xMath.round(value, places)
 end
 
 function xMath.lerp(start, finish, duration)
+    Validator.arguments(true, {
+        { start, { "number", "vector2", "vector3", "vector4" } },
+        { finish, { "number", "vector2", "vector3", "vector4" } },
+        { duration, "number" },
+    })
+
     local valueType = type(start)
+
+    if valueType ~= type(finish) then
+        error(("Expected start and finish to have the same type, got %s and %s"):format(valueType, type(finish)))
+    end
+
     local interpolateByType = Utils.interpolateByType
 
     local startTime = 0

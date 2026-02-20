@@ -1,4 +1,5 @@
-local Utils = require("imports/shared/string/utils.lua")
+local Utils = require "imports/shared/string/utils.lua"
+local Validator = require "imports/shared/validate/init.lua"
 
 local prototype = {
     __index = string,
@@ -11,6 +12,11 @@ local xString = setmetatable({}, prototype)
 ---@param unique? boolean
 ---@return xStringCompiledTemplate compiled
 function xString.compileTemplate(pattern, unique)
+    Validator.arguments(true, {
+        { pattern, "string" },
+        { unique, { "boolean", "nil" } },
+    })
+
     return Utils.compileTemplate(pattern, unique)
 end
 
@@ -19,6 +25,12 @@ end
 ---@param unique? boolean
 ---@return string
 function xString.random(pattern, length, unique)
+    Validator.arguments(true, {
+        { pattern, { "string", "table" } },
+        { length, { "number", "nil" } },
+        { unique, { "boolean", "nil" } },
+    })
+
     ---@type xStringCompiledTemplate
     local compiled
 
