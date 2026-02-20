@@ -1,7 +1,7 @@
 local Validator = require "imports/shared/validate/init.lua"
 
 local prototype = {
-    __index = table, 
+    __index = table,
 }
 
 ---@class xTable : tablelib
@@ -38,31 +38,31 @@ function xTable.deepClone(tbl, copies)
     return copy
 end
 
----@param tbl table 
----@param search any 
-function xTable.contains(tbl, search) 
+---@param tbl table
+---@param search any
+function xTable.contains(tbl, search)
     Validator.arguments(true, {
         { tbl, "table" },
     })
 
-    for key, value in pairs(tbl) do 
-        if value == search then 
-            return true, key 
+    for key, value in pairs(tbl) do
+        if value == search then
+            return true, key
         end
     end
 
-    return false, nil 
+    return false, nil
 end
 
----@param main table 
+---@param main table
 ---@param ... table
 ---@return table
-function xTable.merge(main, ...) 
+function xTable.merge(main, ...)
     Validator.arguments(true, {
         { main, "table" },
     })
 
-    for i = 1, select("#", ...) do 
+    for i = 1, select("#", ...) do
         local source = select(i, ...)
 
         Validator.arguments(true, {
@@ -70,14 +70,14 @@ function xTable.merge(main, ...)
         })
 
         for key, value in pairs(source) do
-            main[key] = value 
+            main[key] = value
         end
     end
 
-    return main 
+    return main
 end
 
----@param tbl table 
+---@param tbl table
 function xTable.print(tbl)
     Validator.arguments(true, {
         { tbl, "table" },
