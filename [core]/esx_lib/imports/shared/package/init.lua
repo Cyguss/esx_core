@@ -1,7 +1,7 @@
 -- This module is greatly inspired by ox_lib
 -- https://github.com/overextended/ox_lib
 -- And uses logic from https://www.lua.org/source/5.5/loadlib.c.html
--- Shoutout to Mutt for helping with understanding the lua source code.
+-- Shoutout to Mutt for originating the idea.
 local nativeRequire = require
 
 ---@param path string

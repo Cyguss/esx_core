@@ -1,3 +1,5 @@
+-- This module is greatly inspired by ox_lib
+-- https://github.com/overextended/ox_lib
 local blockFromInstance = {
     ["new"] = true,
     ["extends"] = true,
