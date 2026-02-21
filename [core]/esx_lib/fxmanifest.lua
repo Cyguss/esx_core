@@ -7,4 +7,7 @@ version "1.0"
 
 use_experimental_fxv2_oal "yes"
 
-shared_scripts "imports/shared/package/init.lua"
+client_script "resource/client/init.lua"
+server_script "resource/server/init.lua"
+
+shared_script "imports/shared/package/init.lua"

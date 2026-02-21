@@ -5,6 +5,58 @@
 local nativeRequire = require
 
 ---@param path string
+---@return string
+local function normalizePath(path)
+    local parts = {}
+
+    for segment in path:gmatch("[^/]+") do
+        if segment == ".." then
+            if #parts > 0 then
+                table.remove(parts)
+            end
+        elseif segment ~= "." then
+            parts[#parts + 1] = segment
+        end
+    end
+
+    return table.concat(parts, "/")
+end
+
+---@param level integer
+---@return string?
+local function getDebugSource(level)
+    local info = debug.getinfo(level, "S")
+
+    return info and info.source
+end
+
+---@param path string
+---@return string
+local function resolveRelativePath(path)
+    if not path:find("^%./") and not path:find("^%.%./") then
+        return path
+    end
+
+    for level = 4, 5 do
+        local source = getDebugSource(level)
+
+        if source and source ~= "[C]" then
+            source = source:gsub("^@", "")
+
+            if source:sub(1, 1) ~= "=" then
+                local callerDir = source:match("^(.*)/[^/]+$")
+
+                if callerDir then
+                    return normalizePath(("%s/%s"):format(callerDir, path))
+                end
+            end
+        end
+    end
+
+    return path
+end
+
+---@param path string
 ---@return string?
 local function readFile(path)
     -- Seperates @esx_lib/imports/function/init.lua -> esx_lib, imports/function/init.lua
@@ -26,10 +78,12 @@ local function searchPath(path, searchTemplate)
         error("package path is not a string - findFile error")
     end
 
-    local separator = "%."  -- require(server.modules.function)
-    local replacement = "/" -- will replace separtor with this char
+    if not path:find("/", 1, true) then
+        local separator = "%."  -- require(server.modules.function)
+        local replacement = "/" -- will replace separtor with this char
 
-    path = path:gsub(separator, replacement)
+        path = path:gsub(separator, replacement)
+    end
 
     local messages = {}
 
@@ -126,6 +180,8 @@ local function require(path)
     if type(path) ~= "string" then
         error("#1 param in require is wrong type (expected string)")
     end
+
+    path = resolveRelativePath(path)
 
     local module = package.loaded[path]
 
