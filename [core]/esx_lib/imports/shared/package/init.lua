@@ -1,211 +1,179 @@
 -- This module is greatly inspired by ox_lib
 -- https://github.com/overextended/ox_lib
 -- And uses logic from https://www.lua.org/source/5.5/loadlib.c.html
--- Shoutout to Mutt for originating the idea.
+-- Uses the intepretation of https://github.com/Reality-Scripts/rs_lib/
 local nativeRequire = require
+local nativeLibraries = {
+    lmprof = true,
+    glm = true,
+}
 
----@param path string
----@return string
-local function normalizePath(path)
-    local parts = {}
-
-    for segment in path:gmatch("[^/]+") do
-        if segment == ".." then
-            if #parts > 0 then
-                table.remove(parts)
-            end
-        elseif segment ~= "." then
-            parts[#parts + 1] = segment
-        end
-    end
-
-    return table.concat(parts, "/")
-end
-
----@param level integer
----@return string?
-local function getDebugSource(level)
-    local info = debug.getinfo(level, "S")
-
-    return info and info.source
-end
-
----@param path string
----@return string
-local function resolveRelativePath(path)
-    if not path:find("^%./") and not path:find("^%.%./") then
-        return path
-    end
-
-    for level = 4, 5 do
-        local source = getDebugSource(level)
-
-        if source and source ~= "[C]" then
-            source = source:gsub("^@", "")
-
-            if source:sub(1, 1) ~= "=" then
-                local callerDir = source:match("^(.*)/[^/]+$")
-
-                if callerDir then
-                    return normalizePath(("%s/%s"):format(callerDir, path))
-                end
-            end
-        end
-    end
-
-    return path
-end
-
----@param path string
----@return string?
-local function readFile(path)
-    -- Seperates @esx_lib/imports/function/init.lua -> esx_lib, imports/function/init.lua
-    local resourceName, filePath = path:match("@([^/]+)/(.*)")
-
-    resourceName = resourceName or GetCurrentResourceName()
-    filePath = filePath or path
-
-    local file = LoadResourceFile(resourceName, filePath)
-
-    return file
-end
-
----@param path string
----@param searchTemplate string
----@return string?, string
-local function searchPath(path, searchTemplate)
-    if type(searchTemplate) ~= "string" then
-        error("package path is not a string - findFile error")
-    end
-
-    if not path:find("/", 1, true) then
-        local separator = "%."  -- require(server.modules.function)
-        local replacement = "/" -- will replace separtor with this char
-
-        path = path:gsub(separator, replacement)
-    end
-
-    local messages = {}
-
-    for fileName in searchTemplate:gsub("?", path):gmatch("[^;]+") do
-        local fileContent = readFile(fileName)
-        if fileContent then
-            return fileName, fileContent
-        end
-
-        messages[#messages + 1] = ("File with a name: %s does not exists"):format(fileName)
-    end
-
-    return nil, table.concat(messages, "\n")
-end
 
 local package = {
-    path = "?.lua;?/init.lua;?/main.lua",
+    luaPath = "?.lua;?/init.lua;?/main.lua",
+    jsonPath = "?.json;?/init.json;?/config.json",
     loaded = {},
-    ---@type fun(path: string): loader: function|string?, loaderData: string? []
-    searchers = {
-        -- native require attempt
-        ---@param path string
-        function(path)
-            local success, result, loaderData = pcall(nativeRequire, path)
-
-            if success then
-                return result, loaderData
-            end
-
-            return nil, result
-        end,
-        -- searcher_lua
-        ---@param path any
-        ---@return function | string?
-        ---@return string?
-        function(path)
-            local filePath, output = searchPath(path, package.path)
-
-            if not filePath then
-                return output
-            end
-
-            local loader, err = load(output, filePath)
-
-            if err then
-                return nil, err
-            end
-
-            return loader
-        end,
-        function(path)
-            local filePath, output = searchPath(path, "?.json;?/init.json")
-
-            if not filePath then
-                return output
-            end
-
-            local success, decodedJson = pcall(json.decode, output)
-
-            if not success then
-                return nil, decodedJson
-            end
-
-            return decodedJson
-        end
-    }
 }
 
 _G.package = package
 
----@param path string
-local function findLoader(path)
-    if type(package.searchers) ~= "table" then
-        error("package searches is not an array - findLoader error")
+---@param module string
+---@return string, string
+local function convertRelativePath(module)
+    local i = 3
+    while true do
+        local src = debug.getinfo(i, "S")?.source
+
+        if not src then
+            error("Failed to find a path using relative method")
+        end
+
+        if src ~= "@@esx_lib/imports/shared/package/init.lua" then
+            local resourceName, path = src:match("@@([^/]+)/(.*)")
+            local parts = {}
+
+            path = path:match("^(.*)/[^/]+$")
+
+            for segment in ("%s/%s"):format(path, module):gmatch("[^/]+") do
+                if segment == ".." then
+                    if #parts > 0 then
+                        table.remove(parts)
+                    end
+                elseif segment ~= "." then
+                    parts[#parts + 1] = segment
+                end
+            end
+
+            return resourceName, table.concat(parts, "/")
+        end
+
+        i += 1
+    end
+end
+
+---@return string
+local function getResourceName()
+    local i = 0
+    while true do
+        local src = debug.getinfo(i, "S")?.source
+
+        if not src then
+            return GetCurrentResourceName()
+        end
+
+        if src ~= "@@esx_lib/imports/shared/package/init.lua" then
+            local resourceName = src:match("^@@([^/]+)/.+")
+            if resourceName then
+                return resourceName
+            end
+        end
+
+        i += 1
+    end
+end
+
+---@param module string
+---@return string, string
+local function resolvePath(module)
+    local isRelative = module:find("%./")
+
+    if isRelative then
+        return convertRelativePath(module)
     end
 
+    local resourceName, path = module:match("^@([^/%.]+)[/%.](.+)$")
+
+    if not resourceName then
+        resourceName = getResourceName()
+    end
+
+    if not path then
+        path = module
+    end
+
+    return resourceName, path
+end
+
+---@param resourceName string
+---@param path string
+---@return function?, string?
+local function findLoader(resourceName, path)
     local messages = {}
+    local searchPath = ("%s;%s"):format(package.luaPath, package.jsonPath)
+    local fileContent
+    local correctFileName
 
-    for i = 1, #package.searchers do
-        local loader, loaderData = package.searchers[i](path)
+    for fileName in searchPath:gsub("?", path):gmatch("[^;]+") do
+        fileContent = LoadResourceFile(resourceName, fileName)
+        if fileContent then
+            correctFileName = fileName
+            break
+        end
+        messages[#messages + 1] = ("File with a name: %s does not exist"):format(fileName)
+    end
 
-        if not loader then
-            messages[#messages + 1] = loader
-        else
-            return loader, loaderData
+    if not fileContent then
+        return nil, table.concat(messages, "\n")
+    end
+
+    if correctFileName:find(".json") then
+        return function()
+            local converted, err = pcall(json.decode, fileContent)
+
+            if not converted or err then
+                return nil, ("Failed to load json file: %s. %s"):format(correctFileName, err)
+            end
+
+            return converted
         end
     end
 
-    error(("Couldn't find module with a name: %s. Errors: %s"):format(path, table.concat(messages, "\n")))
+    local loader, err = load(fileContent, correctFileName)
+
+    if err then
+        return nil, ("Error occured while loading %s. %s"):format(correctFileName, err)
+    end
+
+    return loader
 end
 
----@param path string
-local function require(path)
-    if type(path) ~= "string" then
+---@param module string
+---@param ignoreCache boolean?
+local function require(module, ignoreCache)
+    if type(module) ~= "string" then
         error("#1 param in require is wrong type (expected string)")
     end
 
-    path = resolveRelativePath(path)
-
-    local module = package.loaded[path]
-
-    if module == "__loading" then
-        error("circular-dependency in module (2 modules tried to load each other)")
+    if nativeLibraries[module] then
+        return nativeRequire(module)
     end
 
-    if module ~= nil then
-        return module
+    if package.loaded[module] == "__loading" then
+        error(("Circular-dependency during loading: %s"):format(module))
     end
 
-    package.loaded[path] = "__loading"
-
-    local loader, loaderData = findLoader(path)
-
-    module = type(loader) == "function" and loader() or loader
-
-    if module == nil then
-        module = true
+    if not ignoreCache and package.loaded[module] then
+        return package.loaded[module]
     end
 
-    package.loaded[path] = module
+    package.loaded[module] = "__loading"
 
-    return module, loaderData
+    local resourceName, path = resolvePath(module)
+    path = path:gsub("%.", "/")
+
+    local loader, err = findLoader(resourceName, path)
+
+    if not loader or err then
+        error(err)
+    end
+
+    if type(loader) == "function" then
+        loader = loader()
+    end
+
+    package.loaded[module] = loader or loader == nil
+
+    return package.loaded[module]
 end
 
 _G.require = require
