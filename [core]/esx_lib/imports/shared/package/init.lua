@@ -8,14 +8,11 @@ local nativeLibraries = {
     glm = true,
 }
 
-
 local package = {
     luaPath = "?.lua;?/init.lua;?/main.lua",
     jsonPath = "?.json;?/init.json;?/config.json",
     loaded = {},
 }
-
-_G.package = package
 
 ---@param module string
 ---@return string, string
@@ -116,7 +113,7 @@ local function findLoader(resourceName, path)
         return nil, table.concat(messages, "\n")
     end
 
-    if correctFileName:find(".json") then
+    if correctFileName:find("%.json$") then
         return function()
             local converted, err = pcall(json.decode, fileContent)
 

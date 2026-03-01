@@ -1,4 +1,4 @@
-local Utils = require "imports/shared/validate/utils.lua"
+local Utils = require "@esx_lib/imports/shared/validate/utils"
 
 local xValidate = {}
 

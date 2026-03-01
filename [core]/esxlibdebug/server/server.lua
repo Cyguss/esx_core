@@ -1,0 +1,111 @@
+-- local xCallbacks = require("@esx_lib/imports/server/callback/init")
+-- local tests = require("shared/tests")
+--
+-- print(xCallbacks)
+--
+-- local resourceName = GetCurrentResourceName()
+--
+-- local function log(message, ...)
+--     print(("[^2%s^0] " .. message):format(resourceName, ...))
+-- end
+--
+-- xCallbacks.registerServerCallback(tests.callbacks.server, function(source, message, value)
+--     local numberValue = tonumber(value) or 0
+--
+--     log(
+--         "server callback invoked: source=%s message=%s value=%s",
+--         tostring(source),
+--         tostring(message),
+--         tostring(numberValue)
+--     )
+--
+--     return true, tostring(message), numberValue + 1, source
+-- end)
+--
+-- RegisterNetEvent(tests.events.runServerAwait, function(message, value)
+--     local sourceId = source
+--
+--     local ok, success, mirrored, incremented, clientGameTimer = pcall(
+--         xCallbacks.await,
+--         tests.callbacks.client,
+--         sourceId,
+--         message,
+--         value
+--     )
+--
+--     if not ok then
+--         log("server -> client await failed: source=%s error=%s", tostring(sourceId), tostring(success))
+--         TriggerClientEvent(tests.events.serverResult, sourceId, "await", false, success)
+--         return
+--     end
+--
+--     log(
+--         "server -> client await ok: source=%s success=%s mirrored=%s incremented=%s clientGameTimer=%s",
+--         tostring(sourceId),
+--         tostring(success),
+--         tostring(mirrored),
+--         tostring(incremented),
+--         tostring(clientGameTimer)
+--     )
+--
+--     TriggerClientEvent(
+--         tests.events.serverResult,
+--         sourceId,
+--         "await",
+--         true,
+--         success,
+--         mirrored,
+--         incremented,
+--         clientGameTimer
+--     )
+-- end)
+--
+-- RegisterNetEvent(tests.events.runServerCallback, function(message, value)
+--     local sourceId = source
+--     local ok, err = pcall(function()
+--         xCallbacks(tests.callbacks.client, sourceId, function(success, mirrored, incremented, clientGameTimer)
+--             log(
+--                 "server -> client callback ok: source=%s success=%s mirrored=%s incremented=%s clientGameTimer=%s",
+--                 tostring(sourceId),
+--                 tostring(success),
+--                 tostring(mirrored),
+--                 tostring(incremented),
+--                 tostring(clientGameTimer)
+--             )
+--
+--             TriggerClientEvent(
+--                 tests.events.serverResult,
+--                 sourceId,
+--                 "callback",
+--                 true,
+--                 success,
+--                 mirrored,
+--                 incremented,
+--                 clientGameTimer
+--             )
+--         end, message, value)
+--     end)
+--
+--     if not ok then
+--         log("server -> client callback failed: source=%s error=%s", tostring(sourceId), tostring(err))
+--         TriggerClientEvent(tests.events.serverResult, sourceId, "callback", false, err)
+--         return
+--     end
+--
+--     log("server -> client callback dispatched: source=%s", tostring(sourceId))
+-- end)
+--
+-- AddEventHandler("onResourceStart", function(startedResource)
+--     if startedResource ~= resourceName then
+--         return
+--     end
+--
+--     log("callback tests loaded. run /%s in client console to execute", tests.command)
+-- end)
+
+
+-- require("@esx_lib.client.callback")
+require("@esx_lib/imports/client/callback")
+require("./test")
+-- require("./test.module")
+-- require("./test/module")

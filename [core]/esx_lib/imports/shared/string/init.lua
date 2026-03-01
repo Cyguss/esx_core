@@ -1,5 +1,5 @@
-local Utils = require "imports/shared/string/utils.lua"
-local Validator = require "imports/shared/validate/init.lua"
+local Utils = require "@esx_lib/imports/shared/string/utils"
+local Validator = require "@esx_lib/imports/shared/validate"
 
 local prototype = {
     __index = string,

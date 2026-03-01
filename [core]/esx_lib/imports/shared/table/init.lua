@@ -1,4 +1,4 @@
-local Validator = require "imports/shared/validate/init.lua"
+local Validator = require "@esx_lib/imports/shared/validate"
 
 local prototype = {
     __index = table,
